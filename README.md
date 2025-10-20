@@ -46,3 +46,7 @@ El análisis aborda los siguientes puntos:
 📍 *Elaborado por:* **Araceli González**  
 📅 *Año:* 2025  
 🎓 *Práctica 6 – Programación en R / Análisis de datos e-commerce*
+
+git add README.md
+git commit -m "Agrego README con enlace al informe"
+git push
