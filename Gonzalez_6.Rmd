@@ -1,0 +1,199 @@
+---
+title: "Practica 6 - Analisis e-commerce 2021"
+author: "Araceli Gonzalez"
+date: "2025-10-17"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    collapsed: true
+    smooth_scroll: true
+    theme: journal
+    highlight: kate
+    df_print: paged
+    code_folding: show
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+---
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(readr)
+library(stringr)
+library(knitr)
+library(DT)
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+base_datos <- read_csv("online shop customer sales data.csv")
+```
+
+ 
+# Introduccion
+
+Base: e-commerce - clientes y compras 2021 (descargada desde Kaggle).
+
+La base de datos corresponde a un e-commerce (tienda online) que recopiló información sobre sus clientes y sus compras realizadas durante el año 2021.
+
+Incluye datos de características de los clientes (ID, edad, género), de transacciones (monto total de ventas acumuladas, número de compras realizadas, fecha y valor de la última compra) y de formas de pago y promociones (medio de pago y uso de cupones).
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+base_datos
+```
+
+# Desarrollo de actividades
+
+## Manipulacion y analisis de datos
+
+### Renombrar variables y cambiar valores  
+
+En primer lugar, se realizó un proceso de renombramiento de variables y luego cambios en los valores de varias columnas. Todo esto con el objetivo de mejorar la claridad y legibilidad de la base de datos.
+Esto permite trabajar con nombres más cortos, consistentes y fáciles de interpretar, reduciendo la posibilidad de errores al momento de aplicar funciones o realizar gráficos.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+base_datos <- base_datos %>%
+  rename(
+    ID_cliente = Customer_id,
+    Edad = Age,
+    Genero = Gender,
+    Ingresos_totales = Revenue_Total,
+    Nro_compras = N_Purchases,
+    Fecha_compras = Purchase_DATE,
+    Valor_compras = Purchase_VALUE,
+    Metodo_pago = Pay_Method,
+    Tiempo_web = Time_Spent,
+    Navegador = Browser,
+    Boletin = Newsletter,
+    Cupon = Voucher
+  )
+
+base_datos <- base_datos %>%
+  mutate(
+    Genero = recode(Genero, "0" = "Masculino", "1" = "Femenino"),
+    Metodo_pago = recode(Metodo_pago, "0" = "Billeteras virtuales", "1" = "Tarjetas", "2" = "PayPal", "3" = "Otro"),
+    Cupon = recode(Cupon, "0" = "No utilizado", "1" = "Utilizado")
+    )
+    
+base_datos    
+```
+
+### Filtrado de observaciones según condiciones de interés
+
+Se aplica un proceso de filtrado a la base de datos con el fin de analizar un subconjunto específico de clientes. Esto permite centrar el análisis en casos relevantes según ciertos criterios.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+clientes_filtrados <- base_datos %>% filter(Cupon == "Utilizado", Ingresos_totales > 40)
+clientes_filtrados
+```
+
+El subconjunto resultante incluye únicamente a los clientes con un nivel de ingresos totales superior a 40 € y que además han utilizado cupones. Este filtro permite enfocar la atención en el segmento de mayor valor económico para el e-commerce.
+
+### Resumen descriptivo del grupo filtrado segun el genero
+
+Se elabora un resumen estadístico del grupo de clientes filtrado anteriormente según el género. El objetivo es identificar si existen diferencias significativas en el comportamiento de gasto entre hombres y mujeres del grupo “más valioso” dentro del e-commerce durante el año 2021.
+ 
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+clientes_filtrados %>% 
+  group_by(Genero) %>%
+  summarise(
+    cantidad_clientes = n(),
+    media_ingresos = mean(Ingresos_totales, na.rm = TRUE),
+    mediana_ingresos = median(Ingresos_totales, na.rm = TRUE),
+    desvio_ingresos = sd(Ingresos_totales, na.rm = TRUE)
+    ) %>%
+  datatable(
+    options = list(pageLength = 5, autoWidth = TRUE),
+    caption = "Tabla 1. Resumen de ingresos totales por género (clientes con cupón e ingresos > 40 €)")
+```
+
+
+Los resultados muestran que tanto los valores de media y mediana como el desvío estándar son muy similares entre ambos géneros. Esto sugiere que no existen diferencias significativas en los ingresos totales entre hombres y mujeres dentro del segmento de clientes más valiosos. 
+
+Aunque se observa una diferencia significativa en la cantidad de clientes: las mujeres representan alrededor del doble de clientes que los hombres dentro de este segmento (1.856 vs 893). Esto sugiere que las clientas participan con mayor frecuencia en promociones.
+
+Por lo tanto, puede concluirse que el género no parece un factor determinante en el nivel de gasto o ingresos, pero sí influye significativamente en la participación: las mujeres conforman el segmento más numeroso y activo en el uso de cupones, lo que podría indicar una mayor sensibilidad a las estrategias promocionales.
+
+
+## Visualizacion de datos
+
+### Grafico 1. Distribucion de los ingresos totales segun el genero.
+
+El siguiente gráfico de caja permite observar la distribución de los ingresos totales entre hombres y mujeres que utilizaron cupones y registraron ingresos superiores a 40 €.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+ggplotly(
+  ggplot(clientes_filtrados, aes(x = Genero, y = Ingresos_totales, fill = Genero)) +
+    geom_boxplot() +
+    labs(
+      title = "Distribución de ingresos totales según el género",
+      x = "Género del cliente",
+      y = "Ingresos totales (€)") +
+    theme_minimal()
+)
+```
+
+
+El gráfico refleja una distribución muy similar de los ingresos totales entre hombres y mujeres dentro del grupo filtrado. Estos resultados coinciden con lo mostrado en la Tabla 1, donde las medidas descriptivas (media, mediana y desvío estándar) son semejantes entre géneros, lo que permite arribar a la misma conclusión: el género no es un factor determinante en el nivel de ingresos de estos clientes.
+
+### Grafico 2. Proporcion de clientes por genero
+
+A continuación, este gráfico de pastel muestra la proporción de clientes por género dentro del grupo de clientes filtrados.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+clientes_filtrados %>%
+  count(Genero) %>%
+  mutate(prop = n / sum(n)) %>%
+  plot_ly(labels = ~Genero, values = ~prop, type = 'pie') %>%
+  layout(
+    title = "Proporcion de clientes por genero",
+    showlegend = TRUE)
+```
+
+Se visualiza una clara predominancia de clientas femeninas. Con un 67,5 % de representación, las mujeres constituyen la mayoría de este segmento de clientes, mientras que los hombres solo representan el 32,5 % restante.
+
+Esto sugiere que, dentro de este grupo, las mujeres tienen una mayor presencia y posiblemente una mayor inclinación a aprovechar las ofertas y realizar compras de mayor valor. Podría ser beneficioso para el e-commerce considerar estrategias de marketing y ofertas específicas para retener a este segmento.
+
+### Grafico 3. Metodo de pago mas usado por genero
+
+Finalmente, este gráfico de barras permite visualizar la distribución de los métodos de pago utilizados por los clientes filtrados, diferenciando entre hombres y mujeres.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+clientes_filtrados %>%
+  group_by(Genero, Metodo_pago) %>%
+  summarise(cantidad_clientes = n(), .groups = "drop") %>%
+  plot_ly(x = ~Metodo_pago, y = ~cantidad_clientes, color = ~Genero, type = 'bar') %>%
+  layout(title = "Método de pago más utilizado según el género",
+         xaxis = list(title = "Método de pago"),
+         yaxis = list(title = "Cantidad de clientes"),
+         barmode = 'group'
+         )
+
+```
+
+En primer lugar, se observa una mayor participación femenina en todos los métodos de pago, lo que confirma la tendencia ya señalada en las interpretaciones anteriores.
+
+En cuanto a las preferencias de pago, ambos géneros muestran un patrón de comportamiento similar, concentrando la mayoría de las transacciones en billeteras virtuales y tarjetas. Sin embargo, se aprecia una ligera diferencia en las proporciones:
+
+- Los hombres presentan una mayor inclinación hacia las billeteras virtuales.
+
+- Las mujeres prefieren en mayor medida el uso de tarjetas.
+
+
+# Conclusion Final
+
+El análisis realizado sobre la base de datos del e-commerce correspondiente al año 2021 permitió examinar el comportamiento de los clientes con mayores ingresos (superiores a 40€) y uso de cupones, considerados como el segmento de mayor valor para la empresa.
+
+Los resultados muestran que no existen diferencias significativas en los niveles de ingresos entre hombres y mujeres. Sin embargo, las mujeres representan una proporcion mucho mayor de clientes activos, evidenciando una mayor participacion y respuestas a las promociones.
+
+Ambos géneros comparten preferencias similares en los métodos de pago (principalmente billeteras virtuales y tarjetas), aunque con ligeras diferencias en las proporciones.
+
+En conjunto, los resultados indican que el género no determina el monto del gasto, pero sí influye en la frecuencia de participación y comportamiento de compra.
+
